@@ -8,6 +8,7 @@ class QuizApp {
     this.answered = false;
     this.selectedAnswer = null;
     this.totalQuestions = 0;
+    this.userAnswers = {}; // Track user answers for each question
 
     const elementsInitialized = this.initializeElements();
     if (elementsInitialized) {
@@ -45,6 +46,13 @@ class QuizApp {
     this.scoreMessage = document.getElementById("score-message");
     this.restartButton = document.getElementById("restart-button");
 
+    // Sidebar elements
+    this.sidebar = document.getElementById("sidebar");
+    this.sidebarToggle = document.getElementById("sidebar-toggle");
+    this.sidebarClose = document.getElementById("sidebar-close");
+    this.sidebarOverlay = document.getElementById("sidebar-overlay");
+    this.questionList = document.getElementById("question-list");
+
     // Check if all required elements were found
     const requiredElements = {
       progressFill: this.progressFill,
@@ -56,6 +64,9 @@ class QuizApp {
       nextButton: this.nextButton,
       quizContainer: this.quizContainer,
       resultsContainer: this.resultsContainer,
+      sidebar: this.sidebar,
+      sidebarToggle: this.sidebarToggle,
+      questionList: this.questionList,
     };
 
     const missingElements = Object.entries(requiredElements)
@@ -72,6 +83,7 @@ class QuizApp {
     // Add event listeners
     this.nextButton.addEventListener("click", () => this.nextQuestion());
     this.restartButton.addEventListener("click", () => this.restartQuiz());
+    this.setupSidebar();
 
     return true;
   }
@@ -94,6 +106,7 @@ class QuizApp {
       console.log("Questions data loaded successfully:", data);
       this.questions = data.questions;
       this.totalQuestions = data.totalQuestions;
+      this.generateSidebar();
       this.displayQuestion();
     } catch (error) {
       console.error("Error loading questions:", error);
@@ -145,9 +158,19 @@ class QuizApp {
     // Display options
     this.displayOptions(question.options);
 
-    // Hide feedback and next button
-    this.feedbackContainer.style.display = "none";
-    this.nextButton.style.display = "none";
+    // Check if this question was already answered
+    if (this.userAnswers[this.currentQuestionIndex] !== undefined) {
+      this.answered = true;
+      this.selectedAnswer = this.userAnswers[this.currentQuestionIndex];
+      this.showAnswerResult(this.selectedAnswer, question);
+    } else {
+      // Hide feedback and next button
+      this.feedbackContainer.style.display = "none";
+      this.nextButton.style.display = "none";
+    }
+
+    // Update sidebar status
+    this.updateSidebarStatus();
 
     // Add fade-in animation
     this.optionsContainer.classList.add("fade-in");
@@ -171,6 +194,34 @@ class QuizApp {
     });
   }
 
+  showAnswerResult(selectedKey, question) {
+    const isCorrect = selectedKey === question.correctAnswer;
+
+    // Find and highlight the selected and correct answers
+    const allButtons = this.optionsContainer.querySelectorAll(".option-button");
+    allButtons.forEach((button) => {
+      button.classList.add("disabled");
+
+      const optionKey = button
+        .querySelector(".option-label")
+        .textContent.match(/\((\w)\)/)[1];
+
+      if (optionKey === selectedKey) {
+        button.classList.add(isCorrect ? "correct" : "incorrect");
+      }
+
+      if (!isCorrect && optionKey === question.correctAnswer) {
+        button.classList.add("correct");
+      }
+    });
+
+    // Show feedback
+    this.showFeedback(isCorrect, question.explanation);
+
+    // Show next button
+    this.nextButton.style.display = "inline-block";
+  }
+
   selectAnswer(selectedKey, buttonElement) {
     if (this.answered) return;
 
@@ -179,10 +230,16 @@ class QuizApp {
     const question = this.questions[this.currentQuestionIndex];
     const isCorrect = selectedKey === question.correctAnswer;
 
+    // Track user answer
+    this.userAnswers[this.currentQuestionIndex] = selectedKey;
+
     // Update score
     if (isCorrect) {
       this.score++;
     }
+
+    // Update sidebar status
+    this.updateSidebarStatus();
 
     // Disable all option buttons
     const allButtons = this.optionsContainer.querySelectorAll(".option-button");
@@ -280,6 +337,7 @@ class QuizApp {
     this.score = 0;
     this.answered = false;
     this.selectedAnswer = null;
+    this.userAnswers = {}; // Reset user answers
 
     // Reset progress bar
     this.progressFill.style.width = "0%";
@@ -295,6 +353,113 @@ class QuizApp {
 
     // Display first question
     this.displayQuestion();
+  }
+
+  // Sidebar functionality
+  setupSidebar() {
+    // Toggle sidebar
+    this.sidebarToggle.addEventListener("click", () => {
+      this.openSidebar();
+    });
+
+    // Close sidebar
+    this.sidebarClose.addEventListener("click", () => {
+      this.closeSidebar();
+    });
+
+    // Close sidebar when clicking overlay
+    this.sidebarOverlay.addEventListener("click", () => {
+      this.closeSidebar();
+    });
+
+    // Close sidebar on Escape key
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && this.sidebar.classList.contains("open")) {
+        this.closeSidebar();
+      }
+    });
+  }
+
+  generateSidebar() {
+    this.questionList.innerHTML = "";
+
+    for (let i = 0; i < this.totalQuestions; i++) {
+      const questionBtn = document.createElement("button");
+      questionBtn.className = "question-nav-btn";
+      questionBtn.textContent = i + 1;
+      questionBtn.dataset.questionIndex = i;
+      questionBtn.title = `Go to Question ${i + 1}`;
+
+      // Add click event to navigate to question
+      questionBtn.addEventListener("click", () => {
+        this.goToQuestion(i);
+        this.closeSidebar();
+      });
+
+      this.questionList.appendChild(questionBtn);
+    }
+
+    this.updateSidebarStatus();
+  }
+
+  updateSidebarStatus() {
+    const questionBtns =
+      this.questionList.querySelectorAll(".question-nav-btn");
+
+    questionBtns.forEach((btn, index) => {
+      btn.classList.remove("current", "answered", "incorrect");
+
+      // Mark current question
+      if (index === this.currentQuestionIndex) {
+        btn.classList.add("current");
+        btn.title = `Current Question ${index + 1}`;
+      }
+
+      // Mark answered questions
+      if (this.userAnswers[index] !== undefined) {
+        btn.classList.add("answered");
+
+        // Mark incorrect answers
+        const question = this.questions[index];
+        if (question && this.userAnswers[index] !== question.correctAnswer) {
+          btn.classList.add("incorrect");
+          btn.title = `Question ${index + 1} - Incorrect`;
+        } else {
+          btn.title = `Question ${index + 1} - Correct`;
+        }
+      } else {
+        btn.title = `Question ${index + 1} - Unanswered`;
+      }
+    });
+
+    // Update sidebar header with progress
+    const answeredCount = Object.keys(this.userAnswers).length;
+    const sidebarHeader = this.sidebar.querySelector(".sidebar-header h3");
+    if (sidebarHeader) {
+      sidebarHeader.textContent = `Questions (${answeredCount}/${this.totalQuestions})`;
+    }
+  }
+
+  goToQuestion(questionIndex) {
+    if (questionIndex >= 0 && questionIndex < this.totalQuestions) {
+      this.currentQuestionIndex = questionIndex;
+      this.answered = false;
+      this.selectedAnswer = null;
+      this.displayQuestion();
+      this.updateSidebarStatus();
+    }
+  }
+
+  openSidebar() {
+    this.sidebar.classList.add("open");
+    this.sidebarOverlay.classList.add("active");
+    document.body.style.overflow = "hidden";
+  }
+
+  closeSidebar() {
+    this.sidebar.classList.remove("open");
+    this.sidebarOverlay.classList.remove("active");
+    document.body.style.overflow = "";
   }
 }
 
