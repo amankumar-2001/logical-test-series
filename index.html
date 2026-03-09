@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wrong Number Series Practice Test</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header class="header">
+        <h1>🧮 Wrong Number Series Practice Test</h1>
+        <p>Find the wrong term in the number series</p>
+      </header>
+
+      <div id="quiz-container" class="quiz-container">
+        <!-- Question Progress -->
+        <div class="progress-bar">
+          <div class="progress-fill" id="progress-fill"></div>
+        </div>
+
+        <div class="question-info">
+          <span id="question-counter">Question 1 of 10</span>
+          <span id="score-display">Score: 0/0</span>
+        </div>
+
+        <!-- Question Display -->
+        <div class="question-card" id="question-card">
+          <h2 id="question-title">Loading...</h2>
+          <div class="series-display" id="series-display">
+            <!-- Series numbers will be displayed here -->
+          </div>
+
+          <div class="options-container" id="options-container">
+            <!-- Options will be dynamically added here -->
+          </div>
+
+          <div
+            class="feedback-container"
+            id="feedback-container"
+            style="display: none"
+          >
+            <div id="feedback-message"></div>
+            <div id="explanation"></div>
+          </div>
+
+          <div class="navigation" id="navigation">
+            <button
+              id="next-button"
+              class="btn btn-primary"
+              style="display: none"
+            >
+              Next Question →
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Final Results -->
+      <div
+        id="results-container"
+        class="results-container"
+        style="display: none"
+      >
+        <div class="results-card">
+          <h2>🎉 Test Complete!</h2>
+          <div class="final-score">
+            <span id="final-score-text">Your Score: 0/10</span>
+            <div class="score-percentage" id="score-percentage">0%</div>
+          </div>
+          <div class="score-message" id="score-message"></div>
+          <button id="restart-button" class="btn btn-primary">
+            🔄 Restart Test
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
